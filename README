@@ -1,41 +1,111 @@
-# API Parqueadero (FastAPI + PostgreSQL en Neon)
+# API de parqueadero
 
-## 1. Configurar Neon
-1. Crea un proyecto en https://neon.tech
-2. En el panel pulsa **Connect** y copia la *connection string* (incluye `sslmode=require`).
-3. Copia `.env.example` como `.env` y pega tu cadena:
-   ```
-   DATABASE_URL=postgresql://usuario:password@ep-xxxx.region.aws.neon.tech/neondb?sslmode=require
-   ```
-La tabla `espacios` se crea sola al iniciar la API.
+API REST construida con FastAPI y PostgreSQL. Permite registrar y administrar
+espacios de parqueadero, validar sus datos y consultarlos por tipo de vehículo.
+La aplicación se conecta a PostgreSQL mediante la variable de entorno
+`DATABASE_URL`.
 
-## 2. Ejecutar
-```bash
+## Estructura del proyecto
+
+| Archivo | Responsabilidad |
+|---|---|
+| `main.py` | Configuración de FastAPI, modelos y validaciones, conexión a PostgreSQL y rutas HTTP. |
+| `test_api.py` | Pruebas de integración de las rutas. Requiere una base de datos desechable. |
+| `requirements.txt` | Dependencias Python necesarias para ejecutar el servicio y sus pruebas. |
+
+Al iniciar FastAPI se crea la tabla `espacios` si todavía no existe. El esquema
+está en `main.py`, dentro de la función de ciclo de vida `lifespan`; la base
+también impone unicidad para el número del espacio y una tarifa positiva.
+
+## Requisitos
+
+- Python 3.10 o posterior.
+- Una instancia PostgreSQL accesible desde el equipo.
+- La cadena de conexión PostgreSQL en `DATABASE_URL`.
+
+Neon es una opción de PostgreSQL administrado, pero también se puede usar otra
+instancia compatible. La cadena debe incluir las opciones TLS que requiera el
+proveedor.
+
+## Configuración y ejecución en Windows
+
+Desde PowerShell, en la carpeta del proyecto:
+
+```powershell
 python -m venv venv
-venv\Scripts\activate        # Windows  (Linux/Mac: source venv/bin/activate)
+.\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+```
+
+Configura la cadena de conexión en la sesión actual de PowerShell:
+
+```powershell
+$env:DATABASE_URL = "postgresql://usuario:contraseña@servidor:5432/base?sslmode=require"
+```
+
+También se puede crear un archivo `.env` en la raíz y agregarle una línea como
+`DATABASE_URL=...`. `python-dotenv` carga ese archivo al iniciar la aplicación.
+El archivo `.env` está excluido de Git; no compartas ni subas credenciales.
+
+Inicia el servidor:
+
+```powershell
 uvicorn main:app --reload
 ```
-Swagger: http://127.0.0.1:8000/docs
 
-## Endpoints
-| Actividad | Método | Ruta |
-|---|---|---|
-| 1. Registrar | POST | `/espacios` |
-| 2. Consultar todos | GET | `/espacios` |
-| 3. Consultar por ID | GET | `/espacios/{id}` |
-| 4. Actualizar | PUT | `/espacios/{id}` |
-| 5. Filtrar por tipo de vehículo | GET | `/espacios?tipo_vehiculo=moto` |
-| 6. Eliminar | DELETE | `/espacios/{id}` |
+La API queda disponible normalmente en `http://127.0.0.1:8000`. FastAPI genera
+la documentación interactiva en `http://127.0.0.1:8000/docs`.
 
-## Ejemplo de cuerpo (POST)
+## Modelo de un espacio
+
+Un espacio contiene:
+
+- `numero_espacio`: identificador legible, obligatorio y único (hasta 20 caracteres).
+- `tipo_vehiculo`: `carro`, `moto`, `bicicleta` o `camion`.
+- `ubicacion`: descripción obligatoria de hasta 100 caracteres.
+- `tamano`: `pequeno`, `mediano` o `grande`.
+- `tarifa_hora`: tarifa numérica mayor que cero.
+- `id`: identificador asignado por PostgreSQL y presente en las respuestas.
+
+Ejemplo de cuerpo para crear un espacio:
+
 ```json
-{"numero_espacio":"A-01","tipo_vehiculo":"carro","ubicacion":"Sótano 1","tamano":"mediano","tarifa_hora":3500}
+{
+  "numero_espacio": "A-01",
+  "tipo_vehiculo": "carro",
+  "ubicacion": "Sótano 1",
+  "tamano": "mediano",
+  "tarifa_hora": 3500
+}
 ```
-Valores válidos: `tipo_vehiculo` = carro | moto | bicicleta | camion; `tamano` = pequeno | mediano | grande.
+
+## Rutas disponibles
+
+| Operación | Método y ruta | Resultado |
+|---|---|---|
+| Registrar un espacio | `POST /espacios` | Crea el registro y responde `201`. |
+| Listar espacios | `GET /espacios` | Devuelve todos los registros en orden de ID. |
+| Filtrar por vehículo | `GET /espacios?tipo_vehiculo=moto` | Devuelve solo los espacios del tipo solicitado. |
+| Consultar por ID | `GET /espacios/{espacio_id}` | Devuelve el espacio o `404` si no existe. |
+| Actualizar | `PUT /espacios/{espacio_id}` | Actualiza solo los campos enviados y devuelve el registro. |
+| Eliminar | `DELETE /espacios/{espacio_id}` | Elimina el registro y responde `204` sin cuerpo. |
+
+FastAPI responde `422` cuando un dato no pasa la validación y `409` si se intenta
+registrar o renombrar un espacio con un número ya utilizado.
 
 ## Pruebas
-Las pruebas vacían la tabla `espacios`; úsalas en una rama de pruebas de Neon, no con datos reales.
-```bash
+
+`test_api.py` contiene pruebas de integración que verifican las operaciones
+principales, la validación de datos, los filtros y los errores esperados.
+Ejecútalas desde PowerShell con el entorno virtual activo y `DATABASE_URL`
+configurada:
+
+```powershell
 python test_api.py
 ```
+
+**Advertencia:** las pruebas ejecutan `TRUNCATE espacios RESTART IDENTITY` al
+principio y al final. Esto elimina todos los registros de esa tabla y reinicia
+su contador de IDs. Usa exclusivamente una base o rama de pruebas desechable;
+nunca ejecutes el script con la conexión a producción ni con datos que deban
+conservarse.
