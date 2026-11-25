@@ -1,0 +1,41 @@
+# API Parqueadero (FastAPI + PostgreSQL en Neon)
+
+## 1. Configurar Neon
+1. Crea un proyecto en https://neon.tech
+2. En el panel pulsa **Connect** y copia la *connection string* (incluye `sslmode=require`).
+3. Copia `.env.example` como `.env` y pega tu cadena:
+   ```
+   DATABASE_URL=postgresql://usuario:password@ep-xxxx.region.aws.neon.tech/neondb?sslmode=require
+   ```
+La tabla `espacios` se crea sola al iniciar la API.
+
+## 2. Ejecutar
+```bash
+python -m venv venv
+venv\Scripts\activate        # Windows  (Linux/Mac: source venv/bin/activate)
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+Swagger: http://127.0.0.1:8000/docs
+
+## Endpoints
+| Actividad | Método | Ruta |
+|---|---|---|
+| 1. Registrar | POST | `/espacios` |
+| 2. Consultar todos | GET | `/espacios` |
+| 3. Consultar por ID | GET | `/espacios/{id}` |
+| 4. Actualizar | PUT | `/espacios/{id}` |
+| 5. Filtrar por tipo de vehículo | GET | `/espacios?tipo_vehiculo=moto` |
+| 6. Eliminar | DELETE | `/espacios/{id}` |
+
+## Ejemplo de cuerpo (POST)
+```json
+{"numero_espacio":"A-01","tipo_vehiculo":"carro","ubicacion":"Sótano 1","tamano":"mediano","tarifa_hora":3500}
+```
+Valores válidos: `tipo_vehiculo` = carro | moto | bicicleta | camion; `tamano` = pequeno | mediano | grande.
+
+## Pruebas
+Las pruebas vacían la tabla `espacios`; úsalas en una rama de pruebas de Neon, no con datos reales.
+```bash
+python test_api.py
+```
