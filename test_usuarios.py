@@ -13,9 +13,12 @@ from app.services import usuario_service
 from app.services.usuario_service import CorreoDuplicadoError
 
 
+# Estos tests comprueban las rutas y reglas sin consultar PostgreSQL.
 class UsuariosApiTests(unittest.TestCase):
     def setUp(self):
+        # TestClient permite enviar solicitudes HTTP a la app desde las pruebas.
         self.cliente = TestClient(main.app)
+        # Usuario simulado para las pruebas que necesitan una respuesta.
         self.usuario = Usuario(
             id=1,
             nombre="Ana Pérez",
@@ -24,6 +27,7 @@ class UsuariosApiTests(unittest.TestCase):
         )
 
     def test_openapi_expone_operaciones_crud_de_usuarios(self):
+        # Comprueba que Swagger publique los métodos CRUD esperados.
         paths = main.app.openapi()["paths"]
         self.assertIn("/usuarios/", paths)
         self.assertEqual(
@@ -42,6 +46,7 @@ class UsuariosApiTests(unittest.TestCase):
 
     @patch("app.services.usuario_service.usuario_repository.crear")
     def test_crear_responde_sin_exponer_hash(self, crear):
+        # Simula el repositorio y comprueba la respuesta pública del endpoint.
         crear.return_value = self.usuario
         respuesta = self.cliente.post(
             "/usuarios/",
@@ -64,6 +69,7 @@ class UsuariosApiTests(unittest.TestCase):
 
     @patch("app.services.espacio_service.espacio_repository.listar")
     def test_listado_espacios_conserva_filtro_existente(self, listar):
+        # Verifica que el filtro de la ruta llegue al servicio.
         listar.return_value = [
             Espacio(
                 id=1,
@@ -84,6 +90,7 @@ class UsuariosApiTests(unittest.TestCase):
         listar.assert_called_once_with("moto")
 
     def test_rechaza_correo_invalido_y_campos_obligatorios(self):
+        # Datos inválidos deben ser rechazados antes de llamar al servicio.
         datos = {
             "nombre": "Ana Pérez",
             "correo": "no-es-correo",
@@ -95,6 +102,7 @@ class UsuariosApiTests(unittest.TestCase):
 
     @patch("app.services.usuario_service.usuario_repository.crear")
     def test_correo_duplicado_responde_409(self, crear):
+        # Simula el error de correo duplicado y comprueba el código HTTP.
         crear.side_effect = CorreoDuplicadoError("El correo ya está registrado")
         respuesta = self.cliente.post(
             "/usuarios/",
@@ -109,6 +117,7 @@ class UsuariosApiTests(unittest.TestCase):
 
     @patch("app.services.usuario_service.usuario_repository.listar")
     def test_listado_no_expone_contrasenas(self, listar):
+        # Comprueba que el esquema de respuesta oculte el hash.
         listar.return_value = [self.usuario]
         respuesta = self.cliente.get("/usuarios/")
 
@@ -120,6 +129,7 @@ class UsuariosApiTests(unittest.TestCase):
 
     @patch("app.services.usuario_service.usuario_repository.obtener")
     def test_consultar_usuario_inexistente_responde_404(self, obtener):
+        # None significa que el repositorio no encontró el ID.
         obtener.return_value = None
 
         respuesta = self.cliente.get("/usuarios/999")
@@ -128,6 +138,7 @@ class UsuariosApiTests(unittest.TestCase):
 
     @patch("app.services.usuario_service.usuario_repository.actualizar")
     def test_actualizar_usuario_responde_sin_hash(self, actualizar):
+        # Verifica que actualizar tampoco exponga ni reenvíe texto sin hashear.
         actualizar.return_value = self.usuario
         respuesta = self.cliente.put(
             "/usuarios/1",
@@ -144,6 +155,7 @@ class UsuariosApiTests(unittest.TestCase):
 
     @patch("app.services.usuario_service.usuario_repository.eliminar")
     def test_eliminar_usuario_responde_204(self, eliminar):
+        # Una eliminación correcta responde sin cuerpo, con código 204.
         eliminar.return_value = True
 
         respuesta = self.cliente.delete("/usuarios/1")
@@ -152,6 +164,7 @@ class UsuariosApiTests(unittest.TestCase):
         self.assertEqual(b"", respuesta.content)
 
     def test_hash_usa_sal_aleatoria_y_no_conserva_texto_plano(self):
+        # Contraseñas iguales deben tener hashes distintos por la sal aleatoria.
         primero = usuario_service.hash_contrasena("secreto-seguro")
         segundo = usuario_service.hash_contrasena("secreto-seguro")
 
@@ -161,4 +174,5 @@ class UsuariosApiTests(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    # Permite ejecutar este archivo directamente con python test_usuarios.py.
     unittest.main()

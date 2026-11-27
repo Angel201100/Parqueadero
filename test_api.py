@@ -18,6 +18,7 @@ def vaciar_espacios() -> None:
     desechable, ya que TRUNCATE elimina todos los espacios existentes.
     """
     with conectar() as conn:
+        # TRUNCATE borra todos los datos y reinicia el contador de IDs.
         conn.execute("TRUNCATE espacios RESTART IDENTITY")
 
 
@@ -25,8 +26,10 @@ def ejecutar_pruebas() -> None:
     """Comprueba los flujos principales de creación, consulta y mantenimiento."""
     # TestClient ejecuta el ciclo de vida de FastAPI, incluida la creación de la tabla.
     with TestClient(main.app) as cliente:
+        # Empieza desde una tabla vacía para que las cantidades sean predecibles.
         vaciar_espacios()
 
+        # Espacio base para las pruebas de creación.
         carro = {
             "numero_espacio": "A-01",
             "tipo_vehiculo": "carro",
@@ -34,6 +37,7 @@ def ejecutar_pruebas() -> None:
             "tamano": "mediano",
             "tarifa_hora": 3500,
         }
+        # Segundo espacio para verificar que el filtro separa por tipo.
         moto = {
             **carro,
             "numero_espacio": "M-01",
@@ -49,6 +53,7 @@ def ejecutar_pruebas() -> None:
             espacio_id = respuesta.json()["id"]
             assert cliente.post("/espacios", json=moto).status_code == 201
             assert cliente.post("/espacios", json=carro).status_code == 409
+            # Una tarifa negativa debe fallar la validación del esquema.
             tarifa_invalida = {**carro, "numero_espacio": "X", "tarifa_hora": -5}
             assert cliente.post("/espacios", json=tarifa_invalida).status_code == 422
 
@@ -83,4 +88,5 @@ def ejecutar_pruebas() -> None:
 
 
 if __name__ == "__main__":
+    # Ejecuta la integración solo si se llama explícitamente a este archivo.
     ejecutar_pruebas()
