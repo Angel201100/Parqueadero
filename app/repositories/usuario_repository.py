@@ -1,4 +1,4 @@
-"""Operaciones PostgreSQL para los usuarios."""
+"""Consultas sencillas a la tabla de usuarios en PostgreSQL."""
 
 from typing import Optional
 
@@ -9,7 +9,7 @@ from app.models.usuario import Usuario
 
 
 def crear_tabla_usuarios(conn: psycopg.Connection) -> None:
-    """Crea la tabla independiente de usuarios si todavía no existe."""
+    """Crea la tabla de usuarios si todavía no existe."""
     conn.execute("""
         CREATE TABLE IF NOT EXISTS usuarios (
             id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -21,6 +21,7 @@ def crear_tabla_usuarios(conn: psycopg.Connection) -> None:
 
 
 def crear(nombre: str, correo: str, contrasena_hash: str) -> Usuario:
+    """Guarda un usuario nuevo y devuelve sus datos."""
     with conectar() as conn:
         fila = conn.execute(
             """
@@ -30,10 +31,17 @@ def crear(nombre: str, correo: str, contrasena_hash: str) -> Usuario:
             """,
             (nombre, correo, contrasena_hash),
         ).fetchone()
-    return Usuario(**fila)
+
+    return Usuario(
+        id=fila["id"],
+        nombre=fila["nombre"],
+        correo=fila["correo"],
+        contrasena_hash=fila["contrasena_hash"],
+    )
 
 
 def listar() -> list[Usuario]:
+    """Devuelve todos los usuarios ordenados por ID."""
     with conectar() as conn:
         filas = conn.execute(
             """
@@ -42,10 +50,22 @@ def listar() -> list[Usuario]:
             ORDER BY id
             """
         ).fetchall()
-    return [Usuario(**fila) for fila in filas]
+
+    usuarios = []
+    for fila in filas:
+        usuario = Usuario(
+            id=fila["id"],
+            nombre=fila["nombre"],
+            correo=fila["correo"],
+            contrasena_hash=fila["contrasena_hash"],
+        )
+        usuarios.append(usuario)
+
+    return usuarios
 
 
 def obtener(usuario_id: int) -> Optional[Usuario]:
+    """Busca un usuario por su ID."""
     with conectar() as conn:
         fila = conn.execute(
             """
@@ -55,12 +75,22 @@ def obtener(usuario_id: int) -> Optional[Usuario]:
             """,
             (usuario_id,),
         ).fetchone()
-    return Usuario(**fila) if fila else None
+
+    if fila is None:
+        return None
+
+    return Usuario(
+        id=fila["id"],
+        nombre=fila["nombre"],
+        correo=fila["correo"],
+        contrasena_hash=fila["contrasena_hash"],
+    )
 
 
 def actualizar(
     usuario_id: int, nombre: str, correo: str, contrasena_hash: str
 ) -> Optional[Usuario]:
+    """Actualiza los datos del usuario y devuelve el resultado."""
     with conectar() as conn:
         fila = conn.execute(
             """
@@ -71,13 +101,26 @@ def actualizar(
             """,
             (nombre, correo, contrasena_hash, usuario_id),
         ).fetchone()
-    return Usuario(**fila) if fila else None
+
+    if fila is None:
+        return None
+
+    return Usuario(
+        id=fila["id"],
+        nombre=fila["nombre"],
+        correo=fila["correo"],
+        contrasena_hash=fila["contrasena_hash"],
+    )
 
 
 def eliminar(usuario_id: int) -> bool:
+    """Elimina un usuario y devuelve si existía."""
     with conectar() as conn:
         fila = conn.execute(
             "DELETE FROM usuarios WHERE id = %s RETURNING id",
             (usuario_id,),
         ).fetchone()
-    return fila is not None
+
+    if fila is None:
+        return False
+    return True
