@@ -8,6 +8,7 @@ o una rama de pruebas; nunca ejecutes este archivo contra datos de producción.
 from fastapi.testclient import TestClient
 
 import main
+from app.database.conexion import conectar
 
 
 def vaciar_espacios() -> None:
@@ -16,7 +17,7 @@ def vaciar_espacios() -> None:
     Solo debe utilizarse desde esta prueba de integración, contra una base
     desechable, ya que TRUNCATE elimina todos los espacios existentes.
     """
-    with main.conectar() as conn:
+    with conectar() as conn:
         conn.execute("TRUNCATE espacios RESTART IDENTITY")
 
 

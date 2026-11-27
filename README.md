@@ -6,6 +6,47 @@ conecta a PostgreSQL mediante la variable de entorno `DATABASE_URL`.
 
 Repositorio: <https://github.com/Angel201100/Parqueadero>
 
+## Objetivo
+
+Desarrollar una API REST documentada con FastAPI para gestionar espacios de
+parqueadero, con un módulo independiente de usuarios y persistencia en
+PostgreSQL. Los datos de las dos tablas no están relacionados.
+
+## Módulos desarrollados
+
+- `Espacios`: creación, consulta, actualización y eliminación de espacios, además
+  de filtrado por el tipo de vehículo permitido.
+- `Usuarios`: creación, consulta, actualización y eliminación de usuarios.
+  Los correos se normalizan y las contraseñas se almacenan con hash
+  PBKDF2-SHA256 y una sal aleatoria.
+
+## Endpoints implementados
+
+| Módulo | Método | Endpoint | Propósito |
+|---|---|---|---|
+| Espacios | `POST` | `/espacios` | Registrar un espacio |
+| Espacios | `GET` | `/espacios` | Consultar todos los espacios |
+| Espacios | `GET` | `/espacios?tipo_vehiculo=...` | Filtrar por tipo de vehículo |
+| Espacios | `GET` | `/espacios/{espacio_id}` | Consultar un espacio |
+| Espacios | `PUT` | `/espacios/{espacio_id}` | Actualizar un espacio |
+| Espacios | `DELETE` | `/espacios/{espacio_id}` | Eliminar un espacio |
+| Usuarios | `POST` | `/usuarios/` | Registrar un usuario |
+| Usuarios | `GET` | `/usuarios/` | Consultar todos los usuarios |
+| Usuarios | `GET` | `/usuarios/{usuario_id}` | Consultar un usuario |
+| Usuarios | `PUT` | `/usuarios/{usuario_id}` | Actualizar un usuario |
+| Usuarios | `DELETE` | `/usuarios/{usuario_id}` | Eliminar un usuario |
+
+## Responsabilidad de las capas
+
+| Carpeta | Responsabilidad |
+|---|---|
+| `app/routes` | Recibe las solicitudes HTTP, usa esquemas Pydantic y traduce errores de negocio a códigos HTTP. |
+| `app/services` | Aplica reglas de negocio, normalización, hash de contraseñas y manejo de duplicados o registros inexistentes. |
+| `app/repositories` | Ejecuta las consultas SQL contra PostgreSQL y convierte las filas en modelos internos. |
+| `app/models` | Representa los registros y sus campos en objetos Python. |
+| `app/schemas` | Valida los datos de entrada y controla los campos expuestos por las respuestas. |
+| `app/database` | Crea y administra las conexiones configuradas con `DATABASE_URL`. |
+
 ## Estructura del proyecto
 
 | Archivo | Responsabilidad |
@@ -65,6 +106,7 @@ $env:DATABASE_URL = "postgresql://usuario:contraseña@servidor:5432/base?sslmode
 
 También se puede crear un archivo `.env` en la raíz y agregarle una línea como
 `DATABASE_URL=...`. `python-dotenv` carga ese archivo al iniciar la aplicación.
+El archivo `.env.example` muestra la estructura sin credenciales reales.
 El archivo `.env` está excluido de Git; no compartas ni subas credenciales.
 
 Inicia el servidor:
