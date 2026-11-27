@@ -5,6 +5,8 @@ parqueadero y ofrece un CRUD independiente para usuarios. La aplicación se
 conecta a PostgreSQL mediante la variable de entorno `DATABASE_URL`.
 
 Repositorio: <https://github.com/Angel201100/Parqueadero>
+API publicada: <https://parqueadero-gv0b.onrender.com>
+Swagger publicado: <https://parqueadero-gv0b.onrender.com/docs>
 
 ## Objetivo
 
@@ -209,7 +211,12 @@ En Render crea un servicio **Web Service** vinculado al repositorio y configura:
 Render debe tener acceso a la instancia Neon. No publiques el valor de
 `DATABASE_URL`; configúralo en el panel de variables de entorno del servicio.
 Al iniciar, la aplicación crea las tablas si no existen y la documentación se
-publica en `https://TU-API.onrender.com/docs`.
+publica en `https://parqueadero-gv0b.onrender.com/docs`.
+
+El despliegue público fue comprobado mediante Swagger, OpenAPI y las rutas
+`GET /espacios` y `GET /usuarios/`. Ambas rutas responden datos almacenados,
+por lo que Render puede consultar correctamente la base Neon configurada en
+`DATABASE_URL`.
 
 ## Pruebas
 
